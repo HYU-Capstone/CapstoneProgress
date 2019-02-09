@@ -1,0 +1,239 @@
+---
+swagger: "2.0"
+info:
+  description: ""
+  version: "1.0.0"
+  title: "API Doc"
+host: "localhost"
+basePath: "/v1"
+tags:
+  - name: "user"
+    description: "User data"
+  - name: "prediction"
+    description: "Predict based on ML"
+schemes:
+  - "http"
+paths:
+  /predict:
+    post:
+      tags:
+        - "prediction"
+      summary: "predict with given data"
+      consumes:
+        - "application/octet-stream"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "Face data"
+          required: true
+          schema:
+            $ref: "#/definitions/Binary"
+      responses:
+        200:
+          description: "userId of matching user"
+          schema:
+            $ref: "#/definitions/NewUserReturn"
+        404:
+          description: "No matching data found"
+      security:
+        - api_key: []
+  /users:
+    get:
+      tags:
+        - "user"
+      summary: "list of users matching given filter"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "List of users"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/SimpleUser"
+      security:
+        - api_key: []
+    post:
+      tags:
+        - "user"
+      summary: "register new user"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "User info"
+          required: true
+          schema:
+            $ref: "#/definitions/NewUser"
+      responses:
+        200:
+          description: "ID of new user"
+          schema:
+            $ref: "#/definitions/NewUserReturn"
+      security:
+        - api_key: []
+  /users/batchQuery:
+    get:
+      tags:
+        - "user"
+      summary: "Batch query users with given IDs"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "userIds"
+          in: "query"
+          description: "List of userId"
+          required: true
+          type: "array"
+          items:
+            type: "string"
+      responses:
+        200:
+          description: "List of detailed users with given ID"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/User"
+        404:
+          description: "List of ids which causes fetch error"
+          schema:
+            type: "array"
+            items:
+              type: "string"
+      security:
+        - api_key: []
+  /users/{userId}:
+    get:
+      tags:
+        - "user"
+      summary: "Detailed information of user"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "userId"
+          in: "path"
+          description: "ID of user"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "User data with given ID"
+          schema:
+            $ref: "#/definitions/User"
+        404:
+          description: "Could not find user with given ID"
+      security:
+        - api_key: []
+    put:
+      tags:
+        - "user"
+      summary: "Update user"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "userId"
+          in: "path"
+          description: "ID of user"
+          required: true
+          type: "string"
+        - name: "body"
+          in: "body"
+          description: "User data to update"
+          required: true
+          type: "object"
+          schema:
+            $ref: "#/definitions/NewUser"
+      responses:
+        200:
+          description: "Updated without error"
+        400:
+          description: "List of parameters which causes update error"
+          schema:
+            type: "array"
+            items:
+              type: "string"
+        404:
+          description: "Could not find user with given ID"
+      security:
+        - api_key: []
+    delete:
+      tags:
+        - "user"
+      summary: "Remove user"
+      parameters:
+        - name: "userId"
+          in: "path"
+          description: "ID of user"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "Updated without error"
+        404:
+          description: "Could not find user with given ID"
+      security:
+        - api_key: []
+securityDefinitions:
+  apiKey:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+definitions:
+  Binary:
+    type: "object"
+    description: "Raw face data"
+  SimpleUser:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+      id:
+        type: "string"
+        example: "945166155a7ceabdfe4e07851ed93490"
+  NewUser:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+      email:
+        type: "string"
+      phone:
+        type: "string"
+  NewUserReturn:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        example: "945166155a7ceabdfe4e07851ed93490"
+  User:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        example: "945166155a7ceabdfe4e07851ed93490"
+      name:
+        type: "string"
+      email:
+        type: "string"
+      phone:
+        type: "string"
+      status:
+        type: "string"
+        enum:
+          - "출근"
+          - "퇴근"
+      lastUpdateDate:
+        type: "string"
