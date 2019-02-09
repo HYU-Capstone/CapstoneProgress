@@ -250,3 +250,4 @@ Ncloud-GPU.pem
 training/bin
 training/include
 training/lib
+settings.json
