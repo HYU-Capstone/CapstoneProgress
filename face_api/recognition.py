@@ -6,7 +6,7 @@ import os
 from random import shuffle
 import time
 
-KEY = '9812c727bb6a45e7959bac9e5c44cdf2'
+KEY = '/..your subscription key../'
 BASE_URL = 'https://westcentralus.api.cognitive.microsoft.com/face/v1.0' 
 PERSON_GROUP_ID = 'known-persons'
 TRAIN_SET_PATH = os.path.join(os.getcwd(), 'TrainData')
