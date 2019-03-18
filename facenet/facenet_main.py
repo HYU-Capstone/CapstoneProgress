@@ -31,7 +31,7 @@ classify_data_dir = # 'detection data dir path'
 def facenet_main(request, train_data_dir, classify_data_dir, class_dir ='./class', classifier_filename = None, model_path = './pretrainedModel2017/20170512-110547.pb'):
 	# get now time
 	now = datetime.now()
-	now = now.strftime('%y-%m-%d_%H:%M:')
+	now = now.strftime('%y-%m-%d_%H:%M:%S')
 
 	make_nonexisted_dir(class_dir)
 	classifier_path = None
