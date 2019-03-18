@@ -373,7 +373,6 @@ def load_model(model, input_map=None):
 	# expanduser is not worked in mac
 	# Check if the model is a model directory (containing a metagraph and a checkpoint file)
 	#  or if it is a protobuf file with a frozen graph
-	# model_exp = os.path.expanduser(model)
 	if (os.path.isfile(model)):
 		print('Model filename: %s' % model)
 		with gfile.FastGFile(model,'rb') as f:
