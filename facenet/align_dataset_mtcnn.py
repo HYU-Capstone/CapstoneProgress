@@ -37,13 +37,13 @@ import facenet
 import align.detect_face
 import random
 from time import sleep, clock
+from handle_files import *
 
 
 def align_dataset_mtcnn(input_dir, output_dir, image_size = 182, margin = 44, random_order = 'store_true', gpu_memory_fraction = 1.0, detect_multiple_faces = False):
 	sleep(random.random())
-	output_dir = os.path.expanduser(output_dir)
-	if not os.path.exists(output_dir):
-		os.makedirs(output_dir)
+	make_nonexisted_dir(output_dir)
+
 	# Store some git revision info in a text file in the log directory
 	src_path,_ = os.path.split(os.path.realpath(__file__))
 	facenet.store_revision_info(src_path, output_dir, ' '.join(sys.argv))
@@ -65,8 +65,7 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 182, margin = 44, ra
 	random_key = np.random.randint(0, high=99999)
 
 	bounding_boxes_dir = os.path.join(output_dir, 'bounding_boxes_txt')
-	if not os.path.exists(bounding_boxes_dir):
-		os.makedirs(bounding_boxes_dir)
+	make_nonexisted_dir(bounding_boxes_dir)
 	bounding_boxes_filename = os.path.join(bounding_boxes_dir, 'bounding_boxes_%05d.txt' % random_key)
 	
 	with open(bounding_boxes_filename, "w") as text_file:
@@ -74,7 +73,7 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 182, margin = 44, ra
 		nrof_successfully_aligned = 0
 		if random_order:
 			random.shuffle(dataset)
-
+		
 		for cls in dataset:
 			output_class_dir = os.path.join(output_dir, cls.name)
 			if not os.path.exists(output_class_dir):
@@ -138,12 +137,9 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 182, margin = 44, ra
 									output_filename_n = "{}{}".format(filename_base, file_extension)
 								misc.imsave(output_filename_n, scaled)
 								text_file.write('%s %d %d %d %d\n' % (output_filename_n, bb[0], bb[1], bb[2], bb[3]))
-
 						else:
 							print('Unable to align "%s"' % image_path)
 							text_file.write('%s\n' % (output_filename))
 
-	if os.stat(bounding_boxes_filename).st_size == 0:
-		os.remove(bounding_boxes_filename)
 	print('Total number of images: %d' % nrof_images_total)
 	print('Number of successfully aligned images: %d' % nrof_successfully_aligned)

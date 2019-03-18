@@ -73,8 +73,7 @@ def create_wrong_imagepath_to_label_map(best_class_indices, paths, labels, class
 
 
 def copy_wrong_recognition_files_to_dir(wrong_imagepath_to_label_map, copy_path='./wrongRecogntion'):
-	if not os.path.exists(copy_path):
-		os.makedirs(copy_path)
+	make_nonexisted_dir(copy_path)
 	wrong_imagepath_list = list(wrong_imagepath_to_label_map.keys())
 
 	for wrong_imagepath in wrong_imagepath_list:
