@@ -116,8 +116,6 @@ def print_accuracy(best_class_indices, paths, labels, class_to_label_map):
 def classifier(data_dir, model_path,  mode, class_dir='./class', classifier_filename='classifier.pkl', batch_size=1000, image_size=160):
 	paths = None
 	data_dir_names = os.walk(data_dir).__next__()[1]
-	if 'bounding_boxes_txt' in data_dir_names:
-		data_dir_names.remove('bounding_boxes_txt')
 	if data_dir_names == []:
 		print('There is no train data')
 		return 0

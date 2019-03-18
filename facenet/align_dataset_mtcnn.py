@@ -141,5 +141,11 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 182, margin = 44, ra
 							print('Unable to align "%s"' % image_path)
 							text_file.write('%s\n' % (output_filename))
 
+	# remove bounding_boxes_dir, revision_info.txt
+	remove_all_files_in_dir(bounding_boxes_dir)
+	remove_file_in_dir(output_dir, 'revision_info.txt')
+
 	print('Total number of images: %d' % nrof_images_total)
 	print('Number of successfully aligned images: %d' % nrof_successfully_aligned)
+
+
