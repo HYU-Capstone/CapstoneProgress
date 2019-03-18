@@ -24,7 +24,6 @@ An example of how to use your own dataset to train a classifier that recognizes 
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-## train한 것 세이브하고 그 세이브와 트레인한 데이터 모아두기(구분) / 자동화
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -39,6 +38,33 @@ import math
 from sklearn.svm import SVC
 
 import shutil
+from handle_files import *
+from collections import defaultdict
+
+
+def create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities, threshold=0.4):
+	dir_name = paths[0].split('/')[-2]
+	data_dir_result_label_map = {}
+	predict_label_num_map = defaultdict(int)
+	for i in range(len(paths)):
+		cur_dir_name = paths[i].split('/')[-2]
+		if dir_name != cur_dir_name:
+			(key, value) = max(predict_label_num_map.items(), key=lambda a: a[1])
+			data_dir_result_label_map[dir_name] = key
+			predict_label_num_map = defaultdict(int)
+		if best_class_probabilities[i] >= threshold:
+			predict_label = best_class_indices[i]
+			predict_label_num_map[predict_label] += 1
+
+		else:
+			os.remove(paths[i])
+
+		if i == len(paths)-1:
+			(key, value) = max(predict_label_num_map.items(), key=lambda a: a[1])
+			data_dir_result_label_map[dir_name] = key
+
+		dir_name = cur_dir_name
+	return data_dir_result_label_map
 
 def create_label_to_class_map(class_to_label_map):
 	class_list = list(class_to_label_map.keys())
@@ -113,7 +139,7 @@ def print_accuracy(best_class_indices, paths, labels, class_to_label_map):
 	print('Accuracy: %.3f' % accuracy)
 
 
-def classifier(data_dir, model_path,  mode, class_dir='./class', classifier_filename='classifier.pkl', batch_size=1000, image_size=160):
+def classifier(data_dir, model_path, classifier_path, mode, batch_size=1000, image_size=160):
 	paths = None
 	data_dir_names = os.walk(data_dir).__next__()[1]
 	if data_dir_names == []:
@@ -143,8 +169,6 @@ def classifier(data_dir, model_path,  mode, class_dir='./class', classifier_file
 				feed_dict = { images_placeholder:images, phase_train_placeholder:False }
 				emb_array[start_index:end_index,:] = sess.run(embeddings, feed_dict=feed_dict)
 			
-			classifier_path = os.path.join(class_dir, classifier_filename)
-
 			# Train classifier	
 			if (mode=='TRAIN'):
 				print('Training classifier')
@@ -159,9 +183,6 @@ def classifier(data_dir, model_path,  mode, class_dir='./class', classifier_file
 					class_to_label_map[person_name] = label
 					label += 1
 
-				if not os.path.exists(class_dir):
-					os.makedirs(class_dir)
-				
 				# Saving classifier model, class-label dict
 				with open(classifier_path, 'wb') as outfile:
 					pickle.dump((model, class_to_label_map), outfile)
@@ -169,7 +190,6 @@ def classifier(data_dir, model_path,  mode, class_dir='./class', classifier_file
 				
 			# Classify images
 			elif (mode=='CLASSIFY'):
-				##todo: distinct test vs practice 
 				print('Testing classifier')
 				# Load classifier model, class-label dict
 				with open(classifier_path, 'rb') as infile:
@@ -180,15 +200,23 @@ def classifier(data_dir, model_path,  mode, class_dir='./class', classifier_file
 				predictions = model.predict_proba(emb_array)
 				best_class_indices = np.argmax(predictions, axis=1)
 				best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
-				
 
 				label_to_class_map = create_label_to_class_map(class_to_label_map)
 				wrong_imagepath_to_label_map = create_wrong_imagepath_to_label_map(best_class_indices, paths, labels, class_to_label_map)
 
-				copy_wrong_recognition_files_to_dir(wrong_imagepath_to_label_map)
-				print_wrong_recognition_file_details(wrong_imagepath_to_label_map)
-				print_details_of_all_recognition_result(best_class_indices, best_class_probabilities, class_to_label_map)
-				print_accuracy(best_class_indices, paths, labels, class_to_label_map)
+				data_dir_result_label_map = create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities)
+				print(data_dir_result_label_map)
+				
+				for data_dir_name in data_dir_names:
+					label = data_dir_result_label_map[data_dir_name]
+					_class = label_to_class_map[label]
+					shutil.move(os.path.join(data_dir, data_dir_name), os.path.join(data_dir, _class))
+
+
+				# copy_wrong_recognition_files_to_dir(wrong_imagepath_to_label_map)
+				# print_wrong_recognition_file_details(wrong_imagepath_to_label_map)
+				# print_details_of_all_recognition_result(best_class_indices, best_class_probabilities, class_to_label_map)
+				# print_accuracy(best_class_indices, paths, labels, class_to_label_map)
 
 def test_accuracy_different_depending_on_size(train_mode, train_data_path, train_data_resize_path_name, test_mode, test_data_path, test_data_resize_path_name, train_data_dir, classify_data_dir, classifier_filename):
 	#image size 140~170
@@ -204,4 +232,3 @@ def test_accuracy_different_depending_on_size(train_mode, train_data_path, train
 			classifier(classify_data_dir, model_path, 'CLASSIFY', classifier_filename=classifier_filename, image_size=i)
 			i -= 10
 		image_size += 10
-
