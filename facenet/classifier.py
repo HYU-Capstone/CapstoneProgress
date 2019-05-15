@@ -40,42 +40,43 @@ from sklearn.svm import SVC
 import shutil
 from handle_files import *
 from collections import defaultdict
+from imblearn.combine import *
 
 
-def create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities, threshold=0.4):
+def create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities, remove_threshold=0.3, unkown_threshold=0.7):
 	dir_name = paths[0].split('/')[-2]
 	data_dir_result_label_map = {}
 	predict_label_num_map = defaultdict(int)
+	#the number of probabilities satisfying the criterion
+	predict_label_satisfied_num_map = defaultdict(int)
 	for i in range(len(paths)):
 		cur_dir_name = paths[i].split('/')[-2]
-		if dir_name != cur_dir_name:
+		# initialize each time dir changes
+		if dir_name != cur_dir_name or i == len(paths)-1:
 			(key, value) = max(predict_label_num_map.items(), key=lambda a: a[1])
-			data_dir_result_label_map[dir_name] = key
+			satisfied_num_of_key = predict_label_satisfied_num_map[key]
+			# set 'unkown' if failure to pass the criteria
+			if satisfied_num_of_key < 2:
+				data_dir_result_label_map[dir_name] = -1
+			else :
+				data_dir_result_label_map[dir_name] = key
 			predict_label_num_map = defaultdict(int)
-		if best_class_probabilities[i] >= threshold:
+			predict_label_satisfied_num_map = defaultdict(int)				
+			dir_name = cur_dir_name
+
+		# run only when passed criteria
+		if best_class_probabilities[i] >= remove_threshold:
 			predict_label = best_class_indices[i]
 			predict_label_num_map[predict_label] += 1
-
+			if best_class_probabilities[i] >= unkown_threshold:
+				predict_label_satisfied_num_map[predict_label] += 1
+		# failure to pass the criteria
 		else:
 			os.remove(paths[i])
 
-		if i == len(paths)-1:
-			(key, value) = max(predict_label_num_map.items(), key=lambda a: a[1])
-			data_dir_result_label_map[dir_name] = key
-
-		dir_name = cur_dir_name
 	return data_dir_result_label_map
 
-def create_label_to_class_map(class_to_label_map):
-	class_list = list(class_to_label_map.keys())
-	label_to_class_map = {}
-	for i in range(len(class_list)):
-		class_name = class_list[i]
-		label_name = class_to_label_map[class_name]
-		label_to_class_map[int(label_name)] = class_name
-	return label_to_class_map
-
-def create_wrong_imagepath_to_label_map(best_class_indices, paths, labels, class_to_label_map):
+def create_false_index_list(best_class_indices, labels, class_to_label_map):
 	label_to_class_map = create_label_to_class_map(class_to_label_map)
 	
 	pred_matched_list= list()
@@ -85,14 +86,21 @@ def create_wrong_imagepath_to_label_map(best_class_indices, paths, labels, class
 		else:
 			pred_matched_list.append(False)
 
-	false_list = [i for i, x in enumerate(pred_matched_list) if not x]
+	false_index_list = [i for i, x in enumerate(pred_matched_list) if not x]
+	return false_index_list
 
+def create_label_to_class_map(class_to_label_map):
+	label_to_class_map = {}
+	for class_name in class_to_label_map:
+		label_name = class_to_label_map[class_name]
+		label_to_class_map[label_name] = class_name
+	return label_to_class_map
+
+def create_wrong_imagepath_to_label_map(best_class_indices, paths, label_to_class_map, false_index_list):
 	wrong_imagepath_to_label_map = {}
-	for i in range(len(false_list)):
-		index = false_list[i]
-		imagepath = paths[index]
-		prediction_label = best_class_indices[index]
-		correct_label = labels[index]
+	for false_index in false_index_list:
+		imagepath = paths[false_index]
+		prediction_label = best_class_indices[false_index]
 		wrong_imagepath_to_label_map[imagepath] = label_to_class_map[prediction_label]
 
 	return wrong_imagepath_to_label_map
@@ -100,12 +108,11 @@ def create_wrong_imagepath_to_label_map(best_class_indices, paths, labels, class
 
 def copy_wrong_recognition_files_to_dir(wrong_imagepath_to_label_map, copy_path='./wrongRecogntion'):
 	make_nonexisted_dir(copy_path)
-	wrong_imagepath_list = list(wrong_imagepath_to_label_map.keys())
-
-	for wrong_imagepath in wrong_imagepath_list:
+	for wrong_imagepath in wrong_imagepath_to_label_map:
 		shutil.copy(wrong_imagepath, copy_path)
 		filename = wrong_imagepath.split('/')[-1]
 		correct_label = wrong_imagepath.split('/')[-2]
+		# correct_label = filename.split('_')[0]
 		wrong_label = wrong_imagepath_to_label_map[wrong_imagepath]
 		copied_file_path = os.path.join(copy_path, filename)
 
@@ -116,15 +123,17 @@ def copy_wrong_recognition_files_to_dir(wrong_imagepath_to_label_map, copy_path=
 			num += 1
 			rename = "recognize "+correct_label+" as "+wrong_label+"_"+str(num)+".jpg"
 			rename_path = os.path.join(copy_path, rename)
-		os.rename(copied_file_path, rename_path)
-
+		try:
+			os.rename(copied_file_path, rename_path)
+		except Exception as e:
+			print("error : " )
+			print(e)
 
 def print_wrong_recognition_file_details(wrong_imagepath_to_label_map):
 	## Make labels by filename (filename form : personname + '_' + #)
-	wrong_recognition_file_path = list(wrong_imagepath_to_label_map.keys())
 
 	print('imagepath : \tprediction\tcorrect')
-	for file in wrong_recognition_file_path:
+	for file in wrong_imagepath_to_label_map:
 		person_name = file.split('/')[-2]
 		print(file + ' : \t' + wrong_imagepath_to_label_map[file] + '\t' + person_name + '\n' + '---------------------------')
 
@@ -182,41 +191,51 @@ def classifier(data_dir, model_path, classifier_path, mode, batch_size=1000, ima
 					person_name = cls.name.replace('_', ' ')
 					class_to_label_map[person_name] = label
 					label += 1
+				class_to_label_map['unkown'] = (-1)
 
 				# Saving classifier model, class-label dict
 				with open(classifier_path, 'wb') as outfile:
 					pickle.dump((model, class_to_label_map), outfile)
 				print('Saved classifier model to file "%s"' % classifier_path)
-				
+				print('Trained people : ')
+				for class_name in class_to_label_map:
+					print("\t"+class_name)
+
 			# Classify images
 			elif (mode=='CLASSIFY'):
-				print('Testing classifier')
+				print('Loaded classifier model from file "%s"' % classifier_path)
 				# Load classifier model, class-label dict
 				with open(classifier_path, 'rb') as infile:
 					(model, class_to_label_map) = pickle.load(infile)
 
-				print('Loaded classifier model from file "%s"' % classifier_path)
 
+				prediction_start = clock()
 				predictions = model.predict_proba(emb_array)
+				prediction_time_elapsed = (clock() - prediction_start)
+
 				best_class_indices = np.argmax(predictions, axis=1)
 				best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
 
 				label_to_class_map = create_label_to_class_map(class_to_label_map)
-				wrong_imagepath_to_label_map = create_wrong_imagepath_to_label_map(best_class_indices, paths, labels, class_to_label_map)
+				false_index_list = create_false_index_list(best_class_indices, labels, class_to_label_map)
+
+				wrong_imagepath_to_label_map = create_wrong_imagepath_to_label_map(best_class_indices, paths, label_to_class_map, false_index_list)
 
 				data_dir_result_label_map = create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities)
-				print(data_dir_result_label_map)
-				
-				for data_dir_name in data_dir_names:
-					label = data_dir_result_label_map[data_dir_name]
-					_class = label_to_class_map[label]
-					shutil.move(os.path.join(data_dir, data_dir_name), os.path.join(data_dir, _class))
 
+				for dir_name in data_dir_result_label_map:
+					label = data_dir_result_label_map[dir_name]
+					print('dir_name : '+ dir_name +'\t recognition : '+ label_to_class_map[label])
+				rename_all_files_by_details(best_class_indices, best_class_probabilities, paths, label_to_class_map)
+
+				rename_dirs_to_result_label(data_dir ,data_dir_names, data_dir_result_label_map, label_to_class_map)
 
 				# copy_wrong_recognition_files_to_dir(wrong_imagepath_to_label_map)
 				# print_wrong_recognition_file_details(wrong_imagepath_to_label_map)
 				# print_details_of_all_recognition_result(best_class_indices, best_class_probabilities, class_to_label_map)
-				# print_accuracy(best_class_indices, paths, labels, class_to_label_map)
+
+				print_accuracy(best_class_indices, labels)
+
 
 def test_accuracy_different_depending_on_size(train_mode, train_data_path, train_data_resize_path_name, test_mode, test_data_path, test_data_resize_path_name, train_data_dir, classify_data_dir, classifier_filename):
 	#image size 140~170
