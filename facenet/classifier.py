@@ -157,7 +157,7 @@ def print_details_of_all_recognition_result(best_class_indices, best_class_proba
 	for i in range(len(best_class_indices)):
 		print('%4d  %s: %.3f' % (i, class_names[best_class_indices[i]], best_class_probabilities[i]))
 
-def print_accuracy(best_class_indices, paths, labels, class_to_label_map):
+def print_accuracy(best_class_indices, labels):
 	accuracy = np.mean(np.equal(best_class_indices, labels))
 	print('Accuracy: %.3f' % accuracy)
 
