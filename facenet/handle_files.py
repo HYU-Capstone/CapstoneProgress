@@ -46,9 +46,14 @@ def move_all_files_to_other_dir(current_dir, other_dir):
 		shutil.rmtree(dir_path_in_current_dir)
 	print('move success')
 
-def get_latest_file_in_dir(dir):
+
+def get_flie_list_in_dir(dir):
 	file_list = os.listdir(dir)
 	file_list = remove_DS_Store_in_list(file_list)
+	return file_list
+
+def get_latest_file_in_dir(dir):
+	file_list = get_flie_list_in_dir(dir)
 
 	file_path_list = list()
 	for file in file_list:
