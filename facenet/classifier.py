@@ -105,6 +105,20 @@ def create_wrong_imagepath_to_label_map(best_class_indices, paths, label_to_clas
 
 	return wrong_imagepath_to_label_map
 
+def rename_dirs_to_result_label(root_dir_path, data_dir_names, data_dir_result_label_map, label_to_class_map):
+	for data_dir_name in data_dir_names:
+		label = data_dir_result_label_map[data_dir_name]
+		_class = label_to_class_map[label]
+		rename_dir_name(root_dir_path, data_dir_name, _class)
+
+# os.rename(filename, filename[7:])
+def rename_all_files_by_details(best_class_indices, best_class_probabilities, paths, label_to_class_map):
+	for i in range(len(paths)):
+		filename = paths[i].split('/')[-1]
+		path = paths[i][:-len(filename)]
+		rename = label_to_class_map[best_class_indices[i]] + '('+str(round(best_class_probabilities[i],4))+')'
+		rename_filename(path, filename, rename)
+	print('end')
 
 def copy_wrong_recognition_files_to_dir(wrong_imagepath_to_label_map, copy_path='./wrongRecogntion'):
 	make_nonexisted_dir(copy_path)
@@ -180,7 +194,7 @@ def classifier(data_dir, model_path, classifier_path, mode, batch_size=1000, ima
 			
 			# Train classifier	
 			if (mode=='TRAIN'):
-				print('Training classifier')
+				print('Training')
 				model = SVC(kernel='linear', probability=True)
 				model.fit(emb_array, labels)
 			
