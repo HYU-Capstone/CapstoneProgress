@@ -62,4 +62,32 @@ def get_latest_file_in_dir(dir):
 	latest_file = max(file_path_list, key=os.path.getctime)
 	return latest_file
 
+def get_num_of_files_in_dir(dir):
+	file_list = get_flie_list_in_dir(dir)
+	return len(file_list)
+
+def rename_dir_name(root_dir_path, dir_name, rename):
+	current_path = os.path.join(root_dir_path, dir_name)
+	rename_path = os.path.join(root_dir_path, rename)
+	num = 0
+	while os.path.exists(rename_path):
+		num += 1
+		dup_rename = rename + str(num)
+		rename_path = os.path.join(root_dir_path, dup_rename)
+	shutil.move(current_path, rename_path)
+
+def rename_filename(dir_path, filename, rename, extension='jpg'):
+	current_path = os.path.join(dir_path, filename)
+	rename_path = os.path.join(dir_path, rename + '.' + extension)
+	num = 0
+	while os.path.exists(rename_path):
+		num += 1
+		dup_rename = rename + '_' + str(num) + '.' + extension
+		rename_path = os.path.join(dir_path, dup_rename)
+	try:
+		os.rename(current_path, rename_path)
+	except Exception as e:
+		print("error : " )
+		print(e)
+
 	
