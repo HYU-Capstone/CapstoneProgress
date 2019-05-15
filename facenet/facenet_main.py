@@ -74,15 +74,15 @@ def facenet_main(request, train_data_dir, classify_data_dir, class_dir ='./class
 			return 0		
 		else:
 			classifier(classify_data_dir, model_path, classifier_path, request)
-			move_all_files_to_other_dir(classify_data_dir, train_data_dir)
+			# move_all_files_to_other_dir(classify_data_dir, train_data_dir)
 
 	elif request == 'REGISTER_SUCCESS':
 		#detection dir -> train dir
 		move_all_files_to_other_dir(classify_data_dir, train_data_dir)
 		
-# crop image
-align_dataset_mtcnn(train_input_dir, train_data_dir, image_size = 160)
-align_dataset_mtcnn(classify_input_dir, classify_data_dir, image_size = 160)
+# # crop image
+# align_dataset_mtcnn(train_input_dir, train_data_dir, image_size = 160)
+# align_dataset_mtcnn(classify_input_dir, classify_data_dir, image_size = 160)
 
 
 facenet_main('TRAIN', train_data_dir, classify_data_dir)
