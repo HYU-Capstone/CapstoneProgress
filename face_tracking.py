@@ -4,7 +4,7 @@ import os
 import glob
      
 
-def tracking(bounding_boxes_filename, saving_path, input_dir):
+def tracking(bounding_boxes_filename, input_dir, output_dir):
     with open(bounding_boxes_filename, "r") as text_file:
         text_list = list()
         line = text_file.readline()
@@ -30,10 +30,10 @@ def tracking(bounding_boxes_filename, saving_path, input_dir):
                 track_windows.append(track_window)
             print(text)
 
-
+    if os.path.exists(bounding_boxes_filename):
+        os.remove(bounding_boxes_filename)
     #listOfPic = glob.glob(input_dir + "/Day3/*.jpg")
     listOfPic = glob.glob(input_dir + "/*.jpg")
-    
     face_dir_number = 0
 
     for tw in track_windows:
@@ -47,8 +47,8 @@ def tracking(bounding_boxes_filename, saving_path, input_dir):
 
         face_file_number = 0
         temp_tw = tw
-        if not os.path.exists(saving_path + 'face' + str(face_dir_number)):
-            os.makedirs(saving_path + 'face' + str(face_dir_number))
+        if not os.path.exists(output_dir + '/face' + str(face_dir_number)):
+            os.makedirs(output_dir + '/face' + str(face_dir_number))
 
         for pic in listOfPic:
             frame = cv2.imread(pic)
@@ -64,7 +64,7 @@ def tracking(bounding_boxes_filename, saving_path, input_dir):
             cropped = frame[pts[1][1]:pts[0][1], pts[1][0]:pts[2][0]]
             resize_crop = cv2.resize(cropped, dsize=(160, 160), interpolation=cv2.INTER_AREA)
 
-            cv2.imwrite((saving_path + 'face' + str(face_dir_number) + '/face' + str(face_file_number) + '.jpg'), resize_crop)
+            cv2.imwrite((output_dir + '/face' + str(face_dir_number) + '/face' + str(face_file_number) + '.jpg'), resize_crop)
             face_file_number += 1
 
         face_dir_number += 1

@@ -9,8 +9,8 @@ import argparse
 import tensorflow as tf
 import numpy as np
 
-import align.detect_face
 from for_detection import *
+import align.detect_face
 import random
 from time import sleep, clock
 
@@ -33,10 +33,7 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 160, margin = 44, ra
     threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
     factor = 0.709 # scale factor
 
-    bounding_boxes_dir = os.path.join(output_dir, 'bounding_boxes_txt')
-    if not os.path.exists(bounding_boxes_dir):
-        os.makedirs(bounding_boxes_dir)
-    bounding_boxes_filename = os.path.join(bounding_boxes_dir, 'bounding_boxes_%d.txt' % text_counter)
+    bounding_boxes_filename = os.path.join(output_dir, 'bounding_boxes_%d.txt' % text_counter)
     
     with open(bounding_boxes_filename, "w") as text_file:
         
