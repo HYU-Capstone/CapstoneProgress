@@ -31,7 +31,9 @@ def tracking(bounding_boxes_filename, saving_path, input_dir):
             print(text)
 
 
-    listOfPic = glob.glob(input_dir + "/Day3/*.jpg")
+    #listOfPic = glob.glob(input_dir + "/Day3/*.jpg")
+    listOfPic = glob.glob(input_dir + "/*.jpg")
+    
     face_dir_number = 0
 
     for tw in track_windows:
