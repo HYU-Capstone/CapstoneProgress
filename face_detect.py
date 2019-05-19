@@ -9,12 +9,12 @@ import argparse
 import tensorflow as tf
 import numpy as np
 
-from for_detection import *
 import align.detect_face
+from for_detection import *
 import random
 from time import sleep, clock
 
-def align_dataset_mtcnn(input_dir, output_dir, image_size = 160, margin = 44, random_order = 'store_true', gpu_memory_fraction = 1.0, detect_multiple_faces = True):
+def align_dataset_mtcnn(input_dir, output_dir, image_size = 160, margin = 44, random_order = 'store_true', gpu_memory_fraction = 1.0, detect_multiple_faces = True, text_counter = 0):
     sleep(random.random())
     output_dir = os.path.expanduser(output_dir)
     if not os.path.exists(output_dir):
@@ -33,8 +33,6 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 160, margin = 44, ra
     threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
     factor = 0.709 # scale factor
 
-    text_counter = 0
-
     bounding_boxes_dir = os.path.join(output_dir, 'bounding_boxes_txt')
     if not os.path.exists(bounding_boxes_dir):
         os.makedirs(bounding_boxes_dir)
@@ -46,10 +44,8 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 160, margin = 44, ra
         nrof_successfully_aligned = 0
         for cls in dataset:
             #이거 나중에 지우기
-            text_file.write('%s\n' % cls.image_paths[0])
+            text_file.write('%snext_line' % cls.image_paths[0])
             output_class_dir = os.path.join(output_dir, cls.name)
-            if not os.path.exists(output_class_dir):
-                os.makedirs(output_class_dir)
             nrof_images_total += 1
             filename = os.path.splitext(os.path.split(cls.image_paths[0])[1])[0]
             output_filename = os.path.join(output_class_dir, filename+'.png')
@@ -63,7 +59,7 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 160, margin = 44, ra
                 else:
                     if img.ndim<2:
                         print('Unable to align "%s"' % cls.image_paths[0])
-                        text_file.write('%s\n' % (output_filename))
+                        text_file.write('%snext_line' % (output_filename))
                         continue
                     if img.ndim == 2:
                         img = facenet.to_rgb(img)
@@ -100,12 +96,14 @@ def align_dataset_mtcnn(input_dir, output_dir, image_size = 160, margin = 44, ra
                             scaled = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
                             nrof_successfully_aligned += 1
                             filename_base, file_extension = os.path.splitext(output_filename)
+                            '''
                             if detect_multiple_faces:
                                 output_filename_n = "{}_{}{}".format(filename_base, i, file_extension)
                             else:
                                 output_filename_n = "{}{}".format(filename_base, file_extension)
                             misc.imsave(output_filename_n, scaled)
-                            text_file.write('%d %d %d %d\n' % (bb[0], bb[1], bb[2], bb[3]))
+                            '''
+                            text_file.write('%d %d %d %dnext_line' % (bb[0], bb[1], bb[2], bb[3]))
                     else:
                         print('Unable to align "%s"' % cls.image_paths[0])
                         text_file.write('%s\n' % (output_filename))

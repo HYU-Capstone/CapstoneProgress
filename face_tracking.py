@@ -6,18 +6,21 @@ import glob
 
 def tracking(bounding_boxes_filename, saving_path, input_dir):
     with open(bounding_boxes_filename, "r") as text_file:
-        while True:
-            line = text_file.readline()
-            if not line:
+        text_list = list()
+        line = text_file.readline()
+        text_list = line.split('next_line')
+        track_windows = list()
+        print(text_list)
+        for text in text_list:
+            if text == text_list[-1]:
                 break
-            elif line[0] == 'C':
-                track_windows = list()
-                line = line.replace("\\",'/')
-                line = line.replace("\t",'/t')
-                line = line.replace("\n",'')
-                cap = cv2.imread(line)
+            if not ' ' in text:
+                text = text.replace("\\",'/')
+                text = text.replace("\t",'/t')
+                text = text.replace("\n",'')
+                cap = cv2.imread(text)
             else:
-                x1, y1, x2, y2 = line.split(' ')
+                x1, y1, x2, y2 = text.split(' ')
                 x1 = int(x1)
                 x2 = int(x2)
                 y1 = int(y1)
@@ -25,6 +28,7 @@ def tracking(bounding_boxes_filename, saving_path, input_dir):
                 r, h, c, w = y1, y2 - y1, x1, x2 - x1
                 track_window = (c, r, w, h)
                 track_windows.append(track_window)
+            print(text)
 
 
     listOfPic = glob.glob(input_dir + "/Day3/*.jpg")

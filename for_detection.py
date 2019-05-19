@@ -1,3 +1,5 @@
+# MIT License
+# 
 # Copyright (c) 2016 David Sandberg
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import os
+
 def get_dataset(path, has_class_directories=True):
 	# expanduser is not worked in mac
 	dataset = []
