@@ -1,0 +1,27 @@
+{% extends "base.j2" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+  <div class="col-md-12">
+    <div class="card">
+      <div class="content table-responsive table-full-width">
+        <table class="table table-hover table-striped" id="users">
+          <thead>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Last Checked Date</th>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block script %}
+<script>
+  window.onload = () => {
+    fetchUsers()
+  }
+</script>
+{% endblock %}

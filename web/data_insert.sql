@@ -1,0 +1,15 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+INSERT INTO user VALUES(1,'Test1','email@example.com');
+INSERT INTO user VALUES(2,'Test2','email2@example.com');
+INSERT INTO attendance VALUES(1,1,DATETIME(),'I');
+INSERT INTO attendance VALUES(2,1,DATETIME(),'O');
+INSERT INTO attendance VALUES(3,1,DATETIME(),'I');
+INSERT INTO attendance VALUES(4,1,DATETIME(),'O');
+INSERT INTO attendance VALUES(5,2,DATETIME(),'I');
+INSERT INTO attendance VALUES(6,2,DATETIME(),'O');
+INSERT INTO attendance VALUES(7,2,DATETIME(),'I');
+DELETE FROM sqlite_sequence;
+INSERT INTO sqlite_sequence VALUES('user',2);
+INSERT INTO sqlite_sequence VALUES('attendance',7);
+COMMIT;
