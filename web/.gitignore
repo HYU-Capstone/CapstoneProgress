@@ -174,4 +174,6 @@ dmypy.json
 uploads/*
 dataset/**/*
 testset/**/*
+raw_testset/**/*
+raw_dataset/**/*
 models/*
