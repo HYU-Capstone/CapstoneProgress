@@ -6,22 +6,28 @@ import sys
 import math
 import pickle
 from sklearn.svm import SVC
+import datetime 
+from imblearn.combine import SMOTETomek
+from files_manager_functions import *
 
 data_dir = 'dataset'
 model_path = 'models/20180402-114759.pb'
 batch_size = 90
 image_size = 160
-classifier_filename = 'models/20190523.clf'
+today = datetime.datetime.now().strftime('%Y%m%d')
+classifier_filename = 'models/{}.clf'.format(today)
 
-min_nrof_images_per_class = 20
+min_nrof_images_per_class = 40
 nrof_train_images_per_class = 20
 
 def main():
   with tf.Graph().as_default() as _:
     with tf.Session() as sess:
-      dataset_tmp = facenet.get_dataset(data_dir)
-      train_set, test_set = split_dataset(dataset_tmp, min_nrof_images_per_class, nrof_train_images_per_class)
-      dataset = train_set
+      if get_num_of_files_in_dir(data_dir) == 0:
+        print('No train data!')
+        return
+      
+      dataset = facenet.get_dataset(data_dir)
 
       for cls in dataset:
         assert(len(cls.image_paths)>0, 'There must be at least one image for each class in the dataset')            
@@ -55,9 +61,11 @@ def main():
       
       classifier_filename_exp = os.path.expanduser(classifier_filename)
 
+      x, y = SMOTETomek(random_state=4).fit_sample(emb_array, labels)
+
       print('Training classifier')
       model = SVC(kernel='linear', probability=True)
-      model.fit(emb_array, labels)
+      model.fit(x, y)
   
       # Create a list of class names
       class_names = [ cls.name.replace('_', ' ') for cls in dataset]

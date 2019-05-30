@@ -13,3 +13,8 @@ class Attendance:
     self.date = date
     self.type = attend_type
     self.user_name = user_name
+
+class BoundingBoxInfo:
+  def __init__(self, name, bounding_boxes):
+    self.name = name
+    self.bounding_boxes = bounding_boxes

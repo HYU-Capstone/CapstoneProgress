@@ -4,27 +4,35 @@ from functions import *
 from facenet import facenet
 import tensorflow as tf
 import math
+import json
 import os
+import sys
 import numpy as np
 import pickle
 from sklearn.svm import SVC
 from tensorflow.python.platform import gfile
 import uuid
 from threading import Thread, Lock
+from flask_socketio import SocketIO, emit, send
 UPLOAD_FOLDER = './uploads'
 
 data_dir = 'dataset'
 model_path = 'models/20180402-114759.pb'
 batch_size = 90
 image_size = 160
-classifier_filename = 'models/20190523.clf'
+classifier_filename = 'models/' + sorted(filter(lambda x: 'clf' in x, os.listdir('models')))[0]
 
+print(classifier_filename)
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+socketio = SocketIO(app)
 
 img_stack = []
 mutex = Lock()
+
+if not os.path.isdir(data_dir):
+  os.mkdir(data_dir)
 
 class RequestFailError(Exception):
   pass
@@ -90,9 +98,17 @@ def users():
 def user(user_id):
   return render_template('user.j2', user_id=user_id)
 
+@app.route('/users/new')
+def new_user():
+  return render_template('newuser.j2')
+
 @app.route('/attendances')
 def attendances():
   return render_template('attendances.j2')
+
+@app.route('/dashboard')
+def show_dashboard():
+  return render_template('dashboard_live.j2')
 
 @app.route('/api/users', methods=['GET', 'POST'])
 def api_users():
@@ -103,13 +119,15 @@ def api_users():
         'data': [o.__dict__ for o in get_users()]
       })
     elif request.method == 'POST':
-      body = request.json()
+      body = request.json
       return jsonify({
         'success': True,
         'user_id': create_user(body['name'], body['email'])
       })
   except Exception as e:
-    print(e)
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    print(exc_type, fname, exc_tb.tb_lineno)
     return jsonify({
       'success': False,
       'reason': str(e)
@@ -124,7 +142,7 @@ def api_user(user_id):
         'data': get_user(user_id).__dict__
       })
     else:
-      update_user(user_id, request.json())
+      update_user(user_id, request.json)
       return jsonify({
         'success': True
       })
@@ -134,6 +152,33 @@ def api_user(user_id):
       'success': False,
       'reason': str(e)
     })
+
+@app.route('/api/users/<user_id>/train', methods=['POST'])
+def api_train(user_id):
+  try:
+    user = get_user(user_id)
+    file_keys = ['file' + str(x) for x in range(1, 6)]
+    for filename in file_keys:
+      if filename not in request.files:
+        raise RequestFailError(filename + ' not provided')
+      file = request.files[filename]
+      if file and allowed_file(file.filename):
+        if not os.path.isdir(os.path.join(data_dir, user.user_id)):
+          os.mkdir(os.path.join(data_dir, user.user_id))
+        
+        secured_filename = secure_filename(str(uuid.uuid4()) + '.jpg')
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'data_to_train/{}/{}'.format(user.user_id, secured_filename))
+        file.save(filepath)
+    return jsonify({
+      'success': True
+    })
+  except Exception as e:
+    print(e)
+    return jsonify({
+      'success': False,
+      'reason': str(e)
+    })
+  
 
 
 @app.route('/api/attendances')
@@ -193,31 +238,43 @@ def api_classify():
       'reason': str(e)
     })
 
+@socketio.on('test-request')
+def send_test_msg():
+  emit('attend', json.dumps({
+    'user_id': ['1']
+  }))
+
 def classify_process(imagepaths, sess, graph, class_names):
-  with graph.as_default():
-    # Get input and output tensors
-    images_placeholder = graph.get_tensor_by_name("input:0")
-    embeddings = graph.get_tensor_by_name("embeddings:0")
-    phase_train_placeholder = graph.get_tensor_by_name("phase_train:0")
-    embedding_size = embeddings.get_shape()[1]
+  with mutex:
+    with graph.as_default():
+      # Get input and output tensors
+      images_placeholder = graph.get_tensor_by_name("input:0")
+      embeddings = graph.get_tensor_by_name("embeddings:0")
+      phase_train_placeholder = graph.get_tensor_by_name("phase_train:0")
+      embedding_size = embeddings.get_shape()[1]
 
-    # Run forward pass to calculate embeddings
-    print('Calculating features for images')
-    images = facenet.load_data(imagepaths, False, False, image_size)
-    feed_dict = { images_placeholder:images, phase_train_placeholder:False }
-    emb_array = sess.run(embeddings, feed_dict=feed_dict)
+      # Run forward pass to calculate embeddings
+      print('Calculating features for images')
+      images = facenet.load_data(imagepaths, False, False, image_size)
+      feed_dict = { images_placeholder:images, phase_train_placeholder:False }
+      emb_array = sess.run(embeddings, feed_dict=feed_dict)
 
-    print('TF Session done')
+      print('TF Session done')
 
-    predictions = model.predict_proba(emb_array)
-    best_class_indices = np.argmax(predictions, axis=1)
-    best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
-    
-    print('Prediction done')
+      predictions = model.predict_proba(emb_array)
+      best_class_indices = np.argmax(predictions, axis=1)
+      best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
+      
+      print('Prediction done')
 
-    for index, probability in zip(best_class_indices, best_class_probabilities):
-      print(class_names[index], probability)
+      for index, probability in zip(best_class_indices, best_class_probabilities):
+        print(class_names[index], probability)
+      update_attendance('1')
+      emit('attend', json.dumps({
+        'user_id': ['1']
+      }))
 
 
 if __name__ == '__main__':
-  app.run(host='0.0.0.0')
+  socketio.run(app, host='0.0.0.0', debug=True)
+  # socketio.run(app)
