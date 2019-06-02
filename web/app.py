@@ -119,17 +119,16 @@ def api_train(user_id):
   try:
     user = get_user(user_id)
     file_keys = ['file' + str(x) for x in range(1, 6)]
-    for filename in file_keys:
-      if filename not in request.files:
-        raise RequestFailError(filename + ' not provided')
-      file = request.files[filename]
-      if file and allowed_file(file.filename):
-        if not os.path.isdir(os.path.join(data_dir, user.user_id)):
-          os.mkdir(os.path.join(data_dir, user.user_id))
-        
-        secured_filename = secure_filename(str(time.time()) + '.jpg')
-        filepath = 'raw_trainset/{}/{}'.format(user.user_id, secured_filename)
-        file.save(filepath)
+    if 'file' not in request.files:
+      raise RequestFailError('file not provided')
+    file = request.files['file']
+    if file and allowed_file(file.filename):
+      if not os.path.isdir(os.path.join(data_dir, user.user_id)):
+        os.mkdir(os.path.join(data_dir, user.user_id))
+      
+      secured_filename = secure_filename(str(time.time()) + '.jpg')
+      filepath = 'raw_trainset/{}/{}'.format(user.user_id, secured_filename)
+      file.save(filepath)
     return jsonify({
       'success': True
     })

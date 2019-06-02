@@ -7,7 +7,7 @@ import requests
 from io import BytesIO
 
 #IP = '192.168.29.159'
-IP = '192.168.8.101'
+IP = '210.89.190.5'
 #IP = '0.0.0.0'
 #USE_PROXY = True
 USE_PROXY = False
@@ -18,19 +18,20 @@ time.sleep(5)
 
 images = []
 
-uid = input('UserID?').strip()
+uid = input('UserID?: ').strip()
 
 with PiCamera(resolution=IMAGE_SIZE) as camera:
     stream = BytesIO()
     s = time.time()
+    input('Press enter when ready')
     for foo in camera.capture_continuous(stream, format='jpeg', use_video_port=True):
         # Truncate the stream to the current position (in case
         # prior iterations output a longer image)
-        elapsed = time.time() - s
         stream.truncate()
         stream.seek(0)
         barray = stream.read(stream.getbuffer().nbytes)
         images.append(barray)
+        input('Press enter when ready')
         if len(images) == 5:
             break
 
