@@ -124,8 +124,8 @@ def api_train(user_id):
     file = request.files['file']
     if file:
       secured_filename = secure_filename(str(time.time()) + '.jpg')
-      if not os.path.isdir('raw_trainset/' + user.user_id):
-        os.mkdir('raw_trainset/' + user.user_id)
+      if not os.path.isdir('raw_trainset/' + str(user.user_id)):
+        os.mkdir('raw_trainset/' + str(user.user_id))
       filepath = 'raw_trainset/{}/{}'.format(user.user_id, secured_filename)
       file.save(filepath)
     
