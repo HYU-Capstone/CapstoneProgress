@@ -16,7 +16,6 @@ IMAGE_SIZE = (1280, 720)
 
 time.sleep(5)
 
-images = []
 
 uid = input('UserID?: ').strip()
 
@@ -30,17 +29,12 @@ with PiCamera(resolution=IMAGE_SIZE) as camera:
         stream.truncate()
         stream.seek(0)
         barray = stream.read(stream.getbuffer().nbytes)
-        images.append(barray)
-        input('Press enter when ready')
-        if len(images) == 5:
+        
+        result = requests.post('http://{}:{}/api/users/{}/train'.format(IP, PORT, uid), files={
+          'file': barray
+        })
+        print(result.json())
+        i = input('Press enter when ready')
+        if i == 'done':
             break
-
-    result = requests.post('http://{}:{}/api/users/{}/train'.format(IP, PORT, uid), files={
-      'file1': images[0],
-      'file2': images[1],
-      'file3': images[2],
-      'file4': images[3],
-      'file5': images[4],
-    })
-    
-    print(result.json())
+  

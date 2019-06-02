@@ -127,6 +127,8 @@ def api_train(user_id):
         os.mkdir(os.path.join(data_dir, user.user_id))
       
       secured_filename = secure_filename(str(time.time()) + '.jpg')
+      if not os.path.isdir('raw_trainset/' + user.user_id):
+        os.mkdir('raw_trainset/' + user.user_id)
       filepath = 'raw_trainset/{}/{}'.format(user.user_id, secured_filename)
       file.save(filepath)
     return jsonify({
