@@ -1,35 +1,25 @@
 from flask import Flask, send_from_directory, redirect, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from functions import *
-from facenet import facenet
-import tensorflow as tf
 import math
 import json
 import os
 import sys
 import numpy as np
+import time
 import pickle
-from sklearn.svm import SVC
-from tensorflow.python.platform import gfile
 import uuid
-from threading import Thread, Lock
-from flask_socketio import SocketIO, emit, send
+from multiprocessing import Process, Lock
+# from threading import Thread, Lock
+import shutil
+from test_model import *
 UPLOAD_FOLDER = './uploads'
 
-data_dir = 'dataset'
-model_path = 'models/20180402-114759.pb'
-batch_size = 90
-image_size = 160
-classifier_filename = 'models/' + sorted(filter(lambda x: 'clf' in x, os.listdir('models')))[0]
-
-print(classifier_filename)
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-socketio = SocketIO(app)
 
 img_stack = []
-mutex = Lock()
 
 if not os.path.isdir(data_dir):
   os.mkdir(data_dir)
@@ -39,36 +29,7 @@ class RequestFailError(Exception):
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() == 'jpg'
-
-classifier_filename_exp = os.path.expanduser(classifier_filename)
-with open(classifier_filename_exp, 'rb') as infile:
-  loaded = pickle.load(infile)
-model, class_names = loaded
-print('Loaded classifier model from file "%s"' % classifier_filename_exp)
-
-graph = tf.Graph()
-
-model_exp = os.path.expanduser(model_path)
-if os.path.isfile(model_exp):
-  print('Model filename: %s' % model_exp)
-  with gfile.FastGFile(model_exp,'rb') as f:
-    graph_def = tf.GraphDef()
-    graph_def.ParseFromString(f.read())
-  with graph.as_default():
-    tf.import_graph_def(graph_def, name='')
-  sess = tf.Session(graph=graph)
-else:
-  print('Model directory: %s' % model_exp)
-  meta_file, ckpt_file = facenet.get_model_filenames(model_exp)
-  
-  print('Metagraph file: %s' % meta_file)
-  print('Checkpoint file: %s' % ckpt_file)
-
-  sess = tf.Session(graph=graph)
-  saver = tf.train.import_meta_graph(os.path.join(model_exp, meta_file))
-  saver.restore(sess, os.path.join(model_exp, ckpt_file))
-
+          filename.rsplit('.', 1)[1].lower() in ['jpg', 'jpeg']
 
 @app.route('/static/js/<path:path>')
 def serve_static_js(path):
@@ -166,8 +127,8 @@ def api_train(user_id):
         if not os.path.isdir(os.path.join(data_dir, user.user_id)):
           os.mkdir(os.path.join(data_dir, user.user_id))
         
-        secured_filename = secure_filename(str(uuid.uuid4()) + '.jpg')
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'data_to_train/{}/{}'.format(user.user_id, secured_filename))
+        secured_filename = secure_filename(str(time.time()) + '.jpg')
+        filepath = 'raw_trainset/{}/{}'.format(user.user_id, secured_filename)
         file.save(filepath)
     return jsonify({
       'success': True
@@ -217,20 +178,16 @@ def api_classify():
     file = request.files['file']
     if file.filename == '':
       raise RequestFailError('No file selected')
-    if file and allowed_file(file.filename):
-      filename = secure_filename(str(uuid.uuid4()) + '.jpg')
+    if file:
+      filename = secure_filename(str(time.time()) + '.jpg')
       filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
       file.save(filepath)
       img_stack.append(filepath)
-      if len(img_stack) == 4:
-        p = Thread(target=classify_process, args=(img_stack[:], sess, graph, class_names))
-        p.start()
-        img_stack.clear()
       return jsonify({
         'success': True
       })
     else:
-      raise RequestFailError('Invalid file uploaded')
+      raise RequestFailError('Invalid file uploaded - ' + file.filename)
   except Exception as e:
     print(e)
     return jsonify({
@@ -238,43 +195,7 @@ def api_classify():
       'reason': str(e)
     })
 
-@socketio.on('test-request')
-def send_test_msg():
-  emit('attend', json.dumps({
-    'user_id': ['1']
-  }))
-
-def classify_process(imagepaths, sess, graph, class_names):
-  with mutex:
-    with graph.as_default():
-      # Get input and output tensors
-      images_placeholder = graph.get_tensor_by_name("input:0")
-      embeddings = graph.get_tensor_by_name("embeddings:0")
-      phase_train_placeholder = graph.get_tensor_by_name("phase_train:0")
-      embedding_size = embeddings.get_shape()[1]
-
-      # Run forward pass to calculate embeddings
-      print('Calculating features for images')
-      images = facenet.load_data(imagepaths, False, False, image_size)
-      feed_dict = { images_placeholder:images, phase_train_placeholder:False }
-      emb_array = sess.run(embeddings, feed_dict=feed_dict)
-
-      print('TF Session done')
-
-      predictions = model.predict_proba(emb_array)
-      best_class_indices = np.argmax(predictions, axis=1)
-      best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
-      
-      print('Prediction done')
-
-      for index, probability in zip(best_class_indices, best_class_probabilities):
-        print(class_names[index], probability)
-      update_attendance('1')
-      emit('attend', json.dumps({
-        'user_id': ['1']
-      }))
-
 
 if __name__ == '__main__':
-  socketio.run(app, host='0.0.0.0', debug=True)
+  app.run(host='0.0.0.0', debug=True)
   # socketio.run(app)

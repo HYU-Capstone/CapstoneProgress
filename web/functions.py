@@ -7,10 +7,10 @@ import glob
 from time import sleep 
 import random 
 import tensorflow as tf 
-import facenet
 import align.detect_face
 from scipy import misc
 from models import *
+from facenet import facenet
 
 class connect_db:
   def __enter__(self):
@@ -194,7 +194,7 @@ def update_attendance(user_id):
     cursor.execute(sql, (user_id, update_type, ))
     
 
-def align_dataset_mtcnn(target, croptype, image_size = 160, margin = 44, random_order = 'store_true', gpu_memory_fraction = 1.0, detect_multiple_faces = True, text_counter = 0):
+def align_dataset_mtcnn(target, image_size = 160, margin = 44, random_order = 'store_true', gpu_memory_fraction = 1.0, detect_multiple_faces = True, text_counter = 0):
   with tf.Graph().as_default():
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_memory_fraction)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
@@ -207,7 +207,7 @@ def align_dataset_mtcnn(target, croptype, image_size = 160, margin = 44, random_
 
   bounding_box_list = []
     
-  output_class_dir = os.path.join('raw_' + croptype, target)
+  output_class_dir = os.path.join('tmp', target)
   files = list(filter(lambda x: 'DS_Store' not in x, sorted(os.listdir(output_class_dir))))
   if len(files) == 0:
     print('fatal: no image in target folder')
@@ -263,8 +263,9 @@ def align_dataset_mtcnn(target, croptype, image_size = 160, margin = 44, random_
 
   return filename, bounding_box_list
 
-def tracking(target, croptype, bounding_boxes, input_dir):
-  cap = cv2.imread('raw_{}/{}/{}'.format(croptype, input_dir, target))
+def tracking(target, bounding_boxes, input_dir):
+  output_dir = input_dir + '_t'
+  cap = cv2.imread('tmp/{}/{}'.format(input_dir, target))
   track_windows = []
 
   for box in bounding_boxes:
@@ -274,8 +275,10 @@ def tracking(target, croptype, bounding_boxes, input_dir):
     track_window = (c, r, w, h)
     track_windows.append(track_window)
 
-  listOfPic = list(sorted(filter(lambda x: '.jpg' in x, os.listdir(os.path.join('raw_' + croptype, input_dir)))))
+  listOfPic = list(sorted(filter(lambda x: '.jpg' in x, os.listdir(os.path.join('tmp', input_dir)))))
   face_dir_number = 0
+
+  os.mkdir(os.path.join('tmp', output_dir))
 
   for tw, face_dir_number in zip(track_windows, range(1, len(track_windows) + 1)):
     roi = cap[tw[1] : tw[1] + tw[3], tw[0] : tw[0] + tw[2]]
@@ -287,14 +290,14 @@ def tracking(target, croptype, bounding_boxes, input_dir):
 
 
     temp_tw = tw
-    if not os.path.isdir(os.path.join(croptype, input_dir)):
-      os.mkdir(os.path.join(croptype, input_dir))
+    if not os.path.isdir(os.path.join('tmp/' + output_dir, 'face' + str(face_dir_number))):
+      os.mkdir(os.path.join('tmp/' + output_dir, 'face' + str(face_dir_number)))
 
     print(listOfPic)
     success = 0
     failed = 0
     for pic, face_file_number in zip(listOfPic, range(1, len(listOfPic) + 1)):
-      frame = cv2.imread('raw_{}/{}/{}'.format(croptype, input_dir, pic))
+      frame = cv2.imread('{}/{}/{}'.format('tmp', input_dir, pic))
       hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
       dst = cv2.calcBackProject([hsv],[0],roi_hist,[0,180],1)
 
@@ -311,6 +314,6 @@ def tracking(target, croptype, bounding_boxes, input_dir):
         continue
       resize_crop = cv2.resize(cropped, dsize=(160, 160), interpolation=cv2.INTER_AREA)
 
-      cv2.imwrite((croptype +  '/' + input_dir + '/face' + str(face_dir_number) + '_' + str(face_file_number) + '.jpg'), resize_crop)
+      cv2.imwrite(('tmp/' + output_dir + '/face' + str(face_dir_number) + '/face_' + str(face_file_number) + '.jpg'), resize_crop)
       success += 1
     print('success: {}, failed: {}'.format(success, failed))

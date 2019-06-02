@@ -1,6 +1,6 @@
 import os 
 import shutil
-from functions import align_dataset_mtcnn, tracking
+from dataset_functions import align_dataset_mtcnn, tracking
 
 if os.path.isdir('dataset'):
   shutil.rmtree('dataset')

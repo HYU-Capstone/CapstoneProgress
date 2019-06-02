@@ -45,24 +45,22 @@ classifier_path = 'models/20190530.clf'
 def create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities, unknown_threshold=100, remove_threshold=180):
   dir_name = paths[0].split('/')[-2]
   data_dir_result_label_map = {}
-  predict_label_num_map = defaultdict(int)
   #the number of probabilities satisfying the criterion
   predict_label_satisfied_num_map = defaultdict(int)
   for i in range(len(paths)):
     cur_dir_name = paths[i].split('/')[-2]
     # initialize each time dir changes
     if dir_name != cur_dir_name or i == len(paths)-1:
-      if len(predict_label_num_map) == 0:
+      if len(predict_label_satisfied_num_map) == 0:
         data_dir_result_label_map[dir_name] = -1
       else:
-        (key, value) = max(predict_label_num_map.items(), key=lambda a: a[1])
+        (key, value) = max(predict_label_satisfied_num_map.items(), key=lambda a: a[1])
         satisfied_num_of_key = predict_label_satisfied_num_map[key]
       # set 'unknown' if failure to pass the criteria
       if satisfied_num_of_key < 2:
         data_dir_result_label_map[dir_name] = -1
       else :
         data_dir_result_label_map[dir_name] = key
-      predict_label_num_map = defaultdict(int)
       predict_label_satisfied_num_map = defaultdict(int)        
       dir_name = cur_dir_name
 
@@ -73,10 +71,8 @@ def create_data_dir_result_label_map(paths, best_class_indices, best_class_proba
     acc = round(acc)
     if acc >= unknown_threshold:
       predict_label = best_class_indices[i]
-      predict_label_num_map[predict_label] += 1
-      if acc >= remove_threshold:
-        predict_label_satisfied_num_map[predict_label] += 1
-      # failure to pass the criteria
+      predict_label_satisfied_num_map[predict_label] += 1
+    # failure to pass the criteria
     # if remove_threshold > acc:
     #     os.remove(paths[i])
 
@@ -100,17 +96,13 @@ def rename_dirs_to_result_label(root_dir_path, data_dir_names, data_dir_result_l
 
 def rename_all_files_by_details(best_class_indices, best_class_probabilities, paths, label_to_class_map):
   for i in range(len(paths)):
-    print(paths[i])
     filename = paths[i].split('/')[-1]
-    print(filename)
     path = paths[i][:-len(filename)]
-    print(path)
     acc = round(best_class_probabilities[i]*50,4)
     acc = pow(acc, 3)
     acc = math.sqrt(acc)
     acc = round(acc)
     rename = label_to_class_map[best_class_indices[i]] + '({}, {})'.format(acc, best_class_probabilities[i])
-    print(rename)
     rename_filename(path, filename, rename)
   print('end')
 
@@ -174,10 +166,7 @@ def classifier(data_dir, model_path, classifier_path):
         print('dir_name : '+ dir_name +'\t recognition : '+ label_to_class_map[label])
 
       rename_all_files_by_details(best_class_indices, best_class_probabilities, paths, label_to_class_map)
-      # return data_dir_result_class_map
+      return data_dir_result_class_map
 
-
-      
-      # rename_dirs_to_result_label(data_dir ,data_dir_names, data_dir_result_label_map, label_to_class_map)
-
-classifier(data_dir, model_path, classifier_path)      
+if __name__ == "__main__":
+  print(classifier(data_dir, model_path, classifier_path))

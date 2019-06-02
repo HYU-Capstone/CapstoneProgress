@@ -177,3 +177,4 @@ testset/**/*
 raw_testset/**/*
 raw_dataset/**/*
 models/*
+tmp/**/*
