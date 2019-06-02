@@ -118,7 +118,7 @@ def create_user(name, email):
         'O'
       )
       '''
-    cursor.execute(sql)
+    cursor.execute(sql, (user_id, ))
     return user_id
 
 def update_user(user_id, body):
