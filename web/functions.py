@@ -1,3 +1,4 @@
+import datetime
 import models
 import sqlite3
 import numpy as np
@@ -176,6 +177,12 @@ def get_attendance(att_id):
 
 def update_attendance(user_id):
   user = get_user(user_id)
+  # ('2019-06-04 11:56:42',)
+  last_checked_date = datetime.datetime.strptime(user.last_checked, '%Y-%m-%d %H:%M:%S')
+  current = datetime.datetime.now()
+  if (current - last_checked_date) < datetime.timedelta(hours=1):
+    print('User appeared to the camera less then 1 hr ago')
+    return
   update_type = 'O' if user.status == 'Working' else 'I'
 
   with connect_db() as cursor:
@@ -199,8 +206,7 @@ def align_dataset_mtcnn(target, image_size = 160, margin = 44, random_order = 's
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_memory_fraction)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
     with sess.as_default():
-      pnet, rnet, onet = align.detect_face.create_mtcnn(sess, None)
-  
+      pnet, rnet, onet = align.detect_face.create_mtcnn(sess, None)  
   minsize = 20 # minimum size of face
   threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
   factor = 0.709 # scale factor
@@ -313,7 +319,8 @@ def tracking(target, bounding_boxes, input_dir):
         failed += 1
         continue
       resize_crop = cv2.resize(cropped, dsize=(160, 160), interpolation=cv2.INTER_AREA)
+      greyscale_crop = cv2.cvtColor(resize_crop, cv2.COLOR_BGR2GRAY)
 
-      cv2.imwrite(('tmp/' + output_dir + '/face' + str(face_dir_number) + '/face_' + str(face_file_number) + '.jpg'), resize_crop)
+      cv2.imwrite(('tmp/' + output_dir + '/face' + str(face_dir_number) + '/face_' + str(face_file_number) + '.jpg'), greyscale_crop)
       success += 1
     print('success: {}, failed: {}'.format(success, failed))

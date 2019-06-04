@@ -42,7 +42,7 @@ image_size = 160
 classifier_path = 'models/20190530.clf'
 
 
-def create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities, unknown_threshold=100, remove_threshold=180):
+def create_data_dir_result_label_map(paths, best_class_indices, best_class_probabilities, unknown_threshold=140, remove_threshold=200):
   dir_name = paths[0].split('/')[-2]
   data_dir_result_label_map = {}
   #the number of probabilities satisfying the criterion

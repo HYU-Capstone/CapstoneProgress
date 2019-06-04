@@ -178,3 +178,4 @@ raw_testset/**/*
 raw_dataset/**/*
 models/*
 tmp/**/*
+TRAIN_bak/**/*
