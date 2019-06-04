@@ -179,9 +179,11 @@ def update_attendance(user_id):
   user = get_user(user_id)
   # ('2019-06-04 11:56:42',)
   last_checked_date = datetime.datetime.strptime(user.last_checked, '%Y-%m-%d %H:%M:%S')
-  current = datetime.datetime.now()
+  current = datetime.datetime.now() - datetime.timedelta(hours=9)
+  print(last_checked_date)
+  print(current)
   if (current - last_checked_date) < datetime.timedelta(hours=1):
-    print('User appeared to the camera less then 1 hr ago')
+    print('User appeared to the camera less then 1 hr ago; skipping attendance update job')
     return
   update_type = 'O' if user.status == 'Working' else 'I'
 
