@@ -1,0 +1,26 @@
+{% extends "base.j2" %}
+{% block title %}Attendances{% endblock %}
+{% block content %}
+  <div class="col-md-12">
+    <div class="card">
+      <div class="content table-responsive table-full-width">
+        <table class="table table-hover table-striped" id="attendances">
+          <thead>
+            <th>User</th>
+            <th>Type</th>
+            <th>Date</th>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block script %}
+<script>
+  window.onload = () => {
+    fetchAttendances()
+  }
+</script>
+{% endblock %}
